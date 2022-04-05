@@ -1,0 +1,28 @@
+{
+  "name": "telegramtotwiter",
+  "version": "1.0.0",
+  "description": "Aplicacion que contiene dos bot, uno para Twitter y otro para Telegram",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://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@github.com/PacificBlack/TelgramToTwitterBot.git"
+  },
+  "keywords": [
+    "bot",
+    "twitter",
+    "telegram"
+  ],
+  "author": "Pacific Black",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PacificBlack/TelgramToTwitterBot/issues"
+  },
+  "homepage": "https://github.com/PacificBlack/TelgramToTwitterBot#readme",
+  "dependencies": {
+    "nodejs-file-downloader": "^4.9.3",
+    "telegraf": "^4.7.0"
+  }
+}
