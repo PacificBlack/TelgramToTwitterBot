@@ -4,7 +4,7 @@
   "description": "Aplicacion que contiene dos bot, uno para Twitter y otro para Telegram",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/telbot.js"
   },
   "repository": {
     "type": "git",
