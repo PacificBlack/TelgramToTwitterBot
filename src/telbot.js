@@ -1,47 +1,62 @@
 const { Telegraf } = require("telegraf");
 const { TwitterApi, TwitterApiV2Settings } = require("twitter-api-v2");
+
 const { IntervalTaskRunner, Interval } = require("interval-task-runner");
+
 const fs = require("fs");
 const path = require("path");
 
-TwitterApiV2Settings.deprecationWarnings = false;
+const Downloader = require("nodejs-file-downloader");
+require("dotenv").config();
 
+TwitterApiV2Settings.deprecationWarnings = false;
 const twitterClient = new TwitterApi({
-  appKey: "abLQxkV2s2nHc2O7YyyLTr5MZ",
-  appSecret: "IfAXy2KJ9JYxPHaq24r6WIk9CV4Lk6rRJEAqGKY9pnspDinWON",
-  accessToken: "1093245624168927232-kbhUd2FkIRFNc13X6wwMF2q3VAYjHr",
-  accessSecret: "a5UIUjFBFpcLR1PmTlgZ9dDlBxMYnTTkcMrB11mvEfXgK",
+  appKey: process.env.APPKEY,
+  appSecret: process.env.APPSECRET,
+  accessToken: process.env.ACCESSTOKEN,
+  accessSecret: process.env.ACCESSSECRET,
 });
 const twitter = twitterClient.readWrite;
-const Downloader = require("nodejs-file-downloader");
-const bot = new Telegraf("5155497007:AAEKgvKmmby-xDfurAGsezr97V50V0hUWnA");
 
+const bot = new Telegraf(process.env.TELEGRAFTOKEN);
+
+/**
+ * El bot escucha el evento de recibir videos
+ *
+ * @param content - Es el intermediario para recibir y enviar información al usuario que llama al bot de Telegram
+ *
+ */
 bot.on("video", async (content) => {
   if (content.message.video.file_size < 22062035) {
-    await content.telegram
-      .getFileLink(content.message.video.file_id)
-      .then(async (value) => {
-        const downloader = new Downloader({
-          url: value.href,
-          directory: "./videos",
-          fileName: content.message.video.file_unique_id + ".mp4",
-          cloneFiles: false,
-        });
-        try {
-          await downloader.download();
-          //Buscar y comprobar si el archivo existe, si es asi responde con que ya está, sino lo envia
-          tweetVideo(downloader.config.fileName);
-          content.reply("Enviado a Twitter");
-        } catch (error) {
-          console.log(error);
-        }
-      });
+    /** Se comprueba si el tamaño del video enviado por telegram es soportado para subir por el bot de twitter */
+    await publicarTweet(content);
   } else {
     content.reply("El archivo es muy grande");
   }
 });
 
-async function tweetVideo(params) {
+
+async function publicarTweet(content) {
+  await content.telegram
+    .getFileLink(content.message.video.file_id)
+    .then(async (value) => {
+      const downloader = new Downloader({
+        url: value.href,
+        directory: "./videos",
+        fileName: content.message.video.file_unique_id + ".mp4",
+        cloneFiles: false,
+      });
+      try {
+        await downloader.download();
+        subirVideo(downloader.config.fileName);
+        content.reply("Enviado a Twitter");
+      } catch (error) {
+        console.info(error);
+      }
+    });
+}
+
+async function subirVideo(params) {
   try {
     const mediaIdVideo = await twitter.v1.uploadMedia("./videos/" + params, {
       type: "longmp4",
@@ -51,18 +66,16 @@ async function tweetVideo(params) {
     await twitter
       .post(`https://api.twitter.com/2/tweets`, {
         media: { media_ids: [video.media_id_string] },
-        text: `Los invito a que visiten este perfil en PornHub para mas contenido😍😍😈😈🤤🤤:
-        
-        https://es.pornhub.com/model/lechita-hot`,
+        text: `😍😍😈😈🤤🤤`,
       })
       .then((result) => {
-        console.log("Enviado con exito el tweet");
+        console.info("Enviado con exito el tweet");
       })
       .catch((err) => {
-        console.log("Erro al enviar el tweet");
+        console.error("Erro al enviar el tweet", err);
       });
   } catch (error) {
-    console.log(error);
+    console.error('Ocurrio un error: ',error);
   }
 }
 
@@ -79,4 +92,4 @@ const borrado = function () {
 const interval = Interval.fromMs(360000); // Milisegundos.
 const runner = new IntervalTaskRunner(borrado, interval).start();
 
-bot.launch();
+bot.launch().then((value)=>{console.info('Bot iniciado con exito', value);});
