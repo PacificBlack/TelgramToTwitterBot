@@ -35,38 +35,57 @@ bot.on("video", async (content) => {
   }
 });
 
-
-async function publicarTweet(content) {
-  await content.telegram
-    .getFileLink(content.message.video.file_id)
+/**
+ * Obtiene el video enviado por el bot, lo almacena localmente para que el bot de twitter pueda usarlo y publicarlo
+ *
+ * @param telegram_content - Recibe toda la metadata del video enviado al bot de telegram
+ *
+ */
+async function publicarTweet(telegram_content) {
+  await telegram_content.telegram
+    .getFileLink(telegram_content.message.video.file_id)
     .then(async (value) => {
       const downloader = new Downloader({
         url: value.href,
         directory: "./videos",
-        fileName: content.message.video.file_unique_id + ".mp4",
+        fileName: telegram_content.message.video.file_unique_id + ".mp4",
         cloneFiles: false,
       });
       try {
-        await downloader.download();
-        subirVideo(downloader.config.fileName);
-        content.reply("Enviado a Twitter");
+        await downloader.download(); /**Descarga el video en el almacenamiento local */
+        await subirVideo(downloader.config.fileName)
+          .then(() => {
+            telegram_content.reply("Enviado a Twitter");
+          })
+          .catch((e) => {
+            console.error(
+              "Ocurrio un error en el envío del video",
+              downloader.config.fileName
+            );
+          });
       } catch (error) {
         console.info(error);
       }
     });
 }
 
-async function subirVideo(params) {
+/**
+ * Recibe el nombre del video que se va a publicar para que sea buscado localmente y se pueda subir mediante el bot a twitter
+ * 
+ * @param local_video - Nombre del video a subir
+ */
+async function subirVideo(local_video) {
   try {
-    const mediaIdVideo = await twitter.v1.uploadMedia("./videos/" + params, {
+    const mediaIdVideo = await twitter.v1.uploadMedia("./videos/" + local_video, {
       type: "longmp4",
     });
     const video = await twitter.v1.mediaInfo(mediaIdVideo);
 
+    
     await twitter
       .post(`https://api.twitter.com/2/tweets`, {
         media: { media_ids: [video.media_id_string] },
-        text: `😍😍😈😈🤤🤤`,
+        text: `😈`, //Texto que llevará la publicación
       })
       .then((result) => {
         console.info("Enviado con exito el tweet");
@@ -75,10 +94,13 @@ async function subirVideo(params) {
         console.error("Erro al enviar el tweet", err);
       });
   } catch (error) {
-    console.error('Ocurrio un error: ',error);
+    console.error("Ocurrio un error: ", error);
   }
 }
 
+/**
+ * Funcion de Borrado automatico para mantener el almacenamiento limpio, se elimina cada 24 horas, gracias a un hilo que la ejecuta
+ */
 const borrado = function () {
   fs.readdir("./videos", (err, files) => {
     if (err) throw err;
@@ -89,7 +111,9 @@ const borrado = function () {
     }
   });
 };
-const interval = Interval.fromMs(360000); // Milisegundos.
+const interval = Interval.fromMs(86699990); // Milisegundos.
 const runner = new IntervalTaskRunner(borrado, interval).start();
 
-bot.launch().then((value)=>{console.info('Bot iniciado con exito', value);});
+bot.launch().then((value) => {
+  console.info("Bot iniciado con exito", value);
+});
