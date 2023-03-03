@@ -3,11 +3,10 @@ const { TwitterApi, TwitterApiV2Settings } = require("twitter-api-v2");
 
 const { IntervalTaskRunner, Interval } = require("interval-task-runner");
 
-const {exec} = require('child_process');
-const {series} = require ('async');
+const { exec } = require("child_process");
+const { series } = require("async");
 
-var shell = require('shelljs');
-
+var shell = require("shelljs");
 
 const fs = require("fs");
 const path = require("path");
@@ -16,8 +15,7 @@ const Downloader = require("nodejs-file-downloader");
 require("dotenv").config();
 
 const getEmoji = require("get-random-emoji");
-const textopost = `Follow for more ${getEmoji()} ${getEmoji()} https://es.pornhub.com/model/migentelatina \n https://t.me/+NdTEMP4BkkNiYjlh \n https://t.me/pozone`;
-
+const textopost = `Follow for more ${getEmoji()} ${getEmoji()} https://es.pornhub.com/model/taylihot \n https://t.me/+NdTEMP4BkkNiYjlh \n https://t.me/pozone`;
 
 TwitterApiV2Settings.deprecationWarnings = false;
 const twitterClient = new TwitterApi({
@@ -36,25 +34,31 @@ const bot = new Telegraf(process.env.TELEGRAFTOKEN);
  * @param content - Es el intermediario para recibir y enviar información al usuario que llama al bot de Telegram
  *
  */
- 
- responderTweetsofList();
- 
-bot.on("video", async (content) => {
-  if (content.message.video.file_size < 510000000) {
-    /** Se comprueba si el tamaño del video enviado por telegram es soportado para subir por el bot de twitter */
-    await publicarTweetVideo(content);
-  } else {
-    content.reply("El archivo es muy grande");
-  }
-}).catch((err) => {
-  console.error("Error al arrancar bot para videos", err.data.title);
-});;
 
-bot.on("photo", async (content) => {
-  await publicarTweetImagen(content);
-}).catch((err) => {
-  console.error("Error al arrancar bot para imagenes", err.data.title);
+bot
+  .on("video", async (content) => {
+    if (content.message.video.file_size < 510000000) {
+      /** Se comprueba si el tamaño del video enviado por telegram es soportado para subir por el bot de twitter */
+      await publicarTweetVideo(content);
+    } else {
+      content.reply("El archivo es muy grande");
+    }
+  })
+  .catch((err) => {
+    console.error("Error al arrancar bot para videos", err.data.title);
+  });
+
+bot.command("responder", (content) => {
+  responderTweetsofList(content);
 });
+
+bot
+  .on("photo", async (content) => {
+    await publicarTweetImagen(content);
+  })
+  .catch((err) => {
+    console.error("Error al arrancar bot para imagenes", err.data.title);
+  });
 
 /**
  * Obtiene el video enviado por el bot, lo almacena localmente para que el bot de twitter pueda usarlo y publicarlo
@@ -69,15 +73,13 @@ async function publicarTweetImagen(telegram_content) {
   await telegram_content.telegram
     .getFileLink(photo.file_id)
     .then(async (value) => {
-      
       const downloader = new Downloader({
         url: value.href,
         directory: "./images",
         fileName: photo.file_id + ".jpg",
         cloneFiles: false,
       });
-      
-      
+
       try {
         await downloader
           .download()
@@ -149,7 +151,7 @@ async function subirVideo(local_video) {
         media_category: "amplify",
       })
       .catch((err) => console.log("Error al subir media video", err));
-      
+
     const video = await twitter.v1
       .mediaInfo(mediaIdVideo)
       .catch((err) => console.log("Error al obtener media info video", err));
@@ -223,10 +225,9 @@ const borrado = async function () {
   });
 
   shell.exec("npm restart telbot.js");
-  
 };
 
-async function responderTweetsofList() {
+async function responderTweetsofList(telegram_bot) {
   console.log("Ha iniciado la respuesta automatica de tweets");
   await twitter.v2
     .listTweets(process.env.IDLISTSTR)
@@ -237,6 +238,10 @@ async function responderTweetsofList() {
           .then((value) => {
             console.log("Id del tweet en lista: ", tweet.id);
             console.log("Tweet respondido con exito", value);
+            
+            telegram_bot.reply(
+              `Tweet ${value.data.text} Respondido con exito, enlace https://twitter.com/HotTv69/status/${value.data.id} `
+            );
           })
           .catch((err) => console.log("Error al responder tweet", err));
       });
@@ -246,24 +251,19 @@ async function responderTweetsofList() {
     );
 }
 
-const interval = Interval.fromMs(2400000); 
+const interval = Interval.fromMs(2400000);
 const interval2 = Interval.fromMs(3000000);
 
 //const runner = new IntervalTaskRunner(responderTweetsofList, interval).start();
-const runner2 = new IntervalTaskRunner(borrado,interval2).start();
+const runner2 = new IntervalTaskRunner(borrado, interval2).start();
 
-bot
-  .launch()
-  .then((value) => {
-    console.info("Bot iniciado con exito", value);
-  });
+bot.launch().then((value) => {
+  console.info("Bot iniciado con exito", value);
+});
 
- bot.catch((err) => {
-    console.log("Se detuvo porque", err);
-    
-  });
-
-
+bot.catch((err) => {
+  console.log("Se detuvo porque", err);
+});
 
 async function enviarImagenATelegram(local_imagen) {
   await bot.telegram
